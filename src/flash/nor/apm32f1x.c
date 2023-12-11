@@ -604,7 +604,8 @@ static int apm32x_get_property_addr(struct target *target, struct apm32x_propert
 	}
 
 	switch (cortex_m_get_impl_part(target)) {
-	case CORTEX_M0_PARTNO: /* APM32F0x devices */
+    case CORTEX_M0_PARTNO:
+	case CORTEX_M0P_PARTNO: /* APM32F0x devices */
 		addr->device_id = 0x40015800;
 		addr->flash_size = 0x1FFFF7CC;
 		return ERROR_OK;
@@ -671,10 +672,10 @@ static int apm32x_probe(struct flash_bank *bank)
 	LOG_INFO("device id = 0x%08" PRIx32 "", dbgmcu_idcode);
 
 	uint16_t device_id = dbgmcu_idcode & 0xfff;
-
+    LOG_WARNING("%x",device_id);
 	/* set page size, protection granularity and max flash size depending on family */
 	switch (device_id) {
-	case 0x001: /* apm32f035 */
+	case 0x013: /* apm32f035 */
 	case 0x440: /* apm32f030x8/f051 */
 		page_size = 1024;
 		apm32x_info->ppage_size = 4;
