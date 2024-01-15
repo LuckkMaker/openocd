@@ -66,14 +66,13 @@
 #define FLASH_WRPRTERR	(1 << 4)
 #define FLASH_EOP		(1 << 5)
 
-/* APM32_FLASH_OBR bit definitions (reading) */
+/* APM32_OBR bit definitions (reading) */
 
 #define OPT_ERROR		0
 #define OPT_READOUT		1
 #define OPT_RDWDGSW		2
 #define OPT_RDRSTSTOP	3
 #define OPT_RDRSTSTDBY	4
-#define OPT_BFB2		5	/* dual flash bank only */
 
 /* register unlock keys */
 
@@ -99,6 +98,10 @@ struct apm32x_flash_bank {
 
 	uint32_t register_base;
 	uint8_t default_rdp;
+	int rdp_length;
+	int watchdog_offset;
+	int reset_stop_offset;
+	int reset_stdb_offset;
 	int user_data_offset;
 	int option_offset;
 	uint32_t user_bank_size;
@@ -201,7 +204,7 @@ static int apm32x_read_options(struct flash_bank *bank)
 	if (retval != ERROR_OK)
 		return retval;
 
-	apm32x_info->option_bytes.rdp = (option_bytes & (1 << OPT_READOUT)) ? 0 : apm32x_info->default_rdp;
+	apm32x_info->option_bytes.rdp = (option_bytes & (apm32x_info->rdp_length << OPT_READOUT)) ? 0 : apm32x_info->default_rdp;
 	apm32x_info->option_bytes.user = (option_bytes >> apm32x_info->option_offset >> 2) & 0xff;
 	apm32x_info->option_bytes.data = (option_bytes >> apm32x_info->user_data_offset) & 0xffff;
 
@@ -658,6 +661,10 @@ static int apm32x_probe(struct flash_bank *bank)
 
 	apm32x_info->probed = false;
 	apm32x_info->register_base = FLASH_REG_BASE_B0;
+	apm32x_info->rdp_length = 1;
+	apm32x_info->watchdog_offset = OPT_RDWDGSW;
+	apm32x_info->reset_stop_offset = OPT_RDRSTSTOP;
+	apm32x_info->reset_stdb_offset = OPT_RDRSTSTDBY;
 	apm32x_info->user_data_offset = 10;
 	apm32x_info->option_offset = 0;
 
@@ -672,38 +679,54 @@ static int apm32x_probe(struct flash_bank *bank)
 	LOG_INFO("device id = 0x%08" PRIx32 "", dbgmcu_idcode);
 
 	uint16_t device_id = dbgmcu_idcode & 0xfff;
-    LOG_WARNING("%x",device_id);
+
 	/* set page size, protection granularity and max flash size depending on family */
 	switch (device_id) {
 	case 0x013: /* apm32f035 */
 	case 0x440: /* apm32f030x8/f051 */
 		page_size = 1024;
-		apm32x_info->ppage_size = 4;
+		apm32x_info->ppage_size = 2;
 		max_flash_size_in_kb = 64;
+		apm32x_info->rdp_length = 2;
+		apm32x_info->watchdog_offset = 8;
+		apm32x_info->reset_stop_offset = 9;
+		apm32x_info->reset_stdb_offset = 10;
 		apm32x_info->user_data_offset = 16;
 		apm32x_info->option_offset = 6;
 		apm32x_info->default_rdp = 0xAA;
 		break;
 	case 0x442: /* apm32f030xC/f091/a091 */
 		page_size = 1024;
-		apm32x_info->ppage_size = 4;
+		apm32x_info->ppage_size = 2;
 		max_flash_size_in_kb = 256;
+		apm32x_info->rdp_length = 2;
+		apm32x_info->watchdog_offset = 8;
+		apm32x_info->reset_stop_offset = 9;
+		apm32x_info->reset_stdb_offset = 10;
 		apm32x_info->user_data_offset = 16;
 		apm32x_info->option_offset = 6;
 		apm32x_info->default_rdp = 0xAA;
 		break;
 	case 0x444: /* apm32f030x6 */
 		page_size = 1024;
-		apm32x_info->ppage_size = 4;
+		apm32x_info->ppage_size = 2;
 		max_flash_size_in_kb = 32;
+		apm32x_info->rdp_length = 2;
+		apm32x_info->watchdog_offset = 8;
+		apm32x_info->reset_stop_offset = 9;
+		apm32x_info->reset_stdb_offset = 10;
 		apm32x_info->user_data_offset = 16;
 		apm32x_info->option_offset = 6;
 		apm32x_info->default_rdp = 0xAA;
 		break;
 	case 0x448: /* apm32f072 */
 		page_size = 2048;
-		apm32x_info->ppage_size = 4;
+		apm32x_info->ppage_size = 2;
 		max_flash_size_in_kb = 128;
+		apm32x_info->rdp_length = 2;
+		apm32x_info->watchdog_offset = 8;
+		apm32x_info->reset_stop_offset = 9;
+		apm32x_info->reset_stdb_offset = 10;
 		apm32x_info->user_data_offset = 16;
 		apm32x_info->option_offset = 6;
 		apm32x_info->default_rdp = 0xAA;
@@ -1038,19 +1061,19 @@ COMMAND_HANDLER(apm32x_handle_options_read_command)
 	command_print(CMD, "write protection register = 0x%" PRIx32 "", protection);
 
 	command_print(CMD, "read protection: %s",
-				(optionbyte & (1 << OPT_READOUT)) ? "on" : "off");
+				(optionbyte & (apm32x_info->rdp_length << OPT_READOUT)) ? "on" : "off");
 
 	/* user option bytes are offset depending on variant */
 	optionbyte >>= apm32x_info->option_offset;
 
 	command_print(CMD, "watchdog: %sware",
-				(optionbyte & (1 << OPT_RDWDGSW)) ? "soft" : "hard");
+				(optionbyte & (1 << apm32x_info->watchdog_offset)) ? "soft" : "hard");
 
 	command_print(CMD, "stop mode: %sreset generated upon entry",
-				(optionbyte & (1 << OPT_RDRSTSTOP)) ? "no " : "");
+				(optionbyte & (1 << apm32x_info->reset_stop_offset)) ? "no " : "");
 
 	command_print(CMD, "standby mode: %sreset generated upon entry",
-				(optionbyte & (1 << OPT_RDRSTSTDBY)) ? "no " : "");
+				(optionbyte & (1 << apm32x_info->reset_stdb_offset)) ? "no " : "");
 
 	command_print(CMD, "user data = 0x%02" PRIx16 "", user_data);
 
