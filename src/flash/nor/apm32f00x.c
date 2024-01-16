@@ -608,17 +608,8 @@ static int apm32x_get_property_addr(struct target *target, struct apm32x_propert
 
 	switch (cortex_m_get_impl_part(target)) {
     case CORTEX_M0_PARTNO:
-	case CORTEX_M0P_PARTNO: /* APM32F0x devices */
-		addr->device_id = 0x40015800;
-		addr->flash_size = 0x1FFFF7CC;
-		return ERROR_OK;
-	case CORTEX_M3_PARTNO: /* APM32F1x devices */
-		addr->device_id = 0xE0042000;
-		addr->flash_size = 0x1FFFF7E0;
-		return ERROR_OK;
-	case CORTEX_M4_PARTNO: /* APM32F4x devices */
-		addr->device_id = 0xE0042000;
-		addr->flash_size = 0x1FFFF7CC;
+	case CORTEX_M0P_PARTNO: /* APM32F00x devices */
+		addr->flash_size = 0x0000203E;
 		return ERROR_OK;
 	default:
 		LOG_ERROR("Cannot identify target as a apm32x");
