@@ -651,7 +651,7 @@ static int apm32x_probe(struct flash_bank *bank)
 
 	/* get flash size from target. */
 	retval = apm32x_get_flash_size(bank, &flash_size_in_kb);
-TODO
+
 	/* failed reading flash size or flash size invalid (early silicon),
 	 * default to max target family */
 	if (retval != ERROR_OK || flash_size_in_kb == 0xffff || flash_size_in_kb == 0) {
