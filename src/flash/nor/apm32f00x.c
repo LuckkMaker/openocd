@@ -609,7 +609,7 @@ static int apm32x_get_property_addr(struct target *target, struct apm32x_propert
 	switch (cortex_m_get_impl_part(target)) {
     case CORTEX_M0_PARTNO:
 	case CORTEX_M0P_PARTNO: /* APM32F00x devices */
-		addr->flash_size = 0x0000203E;
+		addr->flash_size = 0x203E0;
 		return ERROR_OK;
 	default:
 		LOG_ERROR("Cannot identify target as a apm32x");
@@ -651,7 +651,7 @@ static int apm32x_probe(struct flash_bank *bank)
 
 	/* get flash size from target. */
 	retval = apm32x_get_flash_size(bank, &flash_size_in_kb);
-
+TODO
 	/* failed reading flash size or flash size invalid (early silicon),
 	 * default to max target family */
 	if (retval != ERROR_OK || flash_size_in_kb == 0xffff || flash_size_in_kb == 0) {
