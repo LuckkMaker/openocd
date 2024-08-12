@@ -13,7 +13,7 @@
  * The list of built-in flash drivers.
  * @todo Make this dynamically extendable with loadable modules.
  */
-static const struct flash_driver * const flash_drivers[] = {
+static const struct flash_driver *const flash_drivers[] = {
 	&aduc702x_flash,
 	&aducm360_flash,
 	&ambiqmicro_flash,
@@ -41,6 +41,7 @@ static const struct flash_driver * const flash_drivers[] = {
 	&fm3_flash,
 	&fm4_flash,
 	&fespi_flash,
+	&g32r430_flash,
 	&jtagspi_flash,
 	&kinetis_flash,
 	&kinetis_ke_flash,
@@ -93,7 +94,8 @@ static const struct flash_driver * const flash_drivers[] = {
 
 const struct flash_driver *flash_driver_find_by_name(const char *name)
 {
-	for (unsigned i = 0; flash_drivers[i]; i++) {
+	for (unsigned i = 0; flash_drivers[i]; i++)
+	{
 		if (strcmp(name, flash_drivers[i]->name) == 0)
 			return flash_drivers[i];
 	}
