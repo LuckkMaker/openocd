@@ -94,7 +94,7 @@ FLASH_BANK_COMMAND_HANDLER(g32r430xx_flash_bank_command)
 
     bank->driver_priv = g32r430xx_info;
     g32r430xx_info->probed = false;
-    g32r430xx_info->register_base = FLASH_REG_BASE_B0;
+    g32r430xx_info->register_base = FLASH_REG_BASE;
     g32r430xx_info->user_bank_size = bank->size;
 
     /* The flash write must be aligned to a halfword boundary */
