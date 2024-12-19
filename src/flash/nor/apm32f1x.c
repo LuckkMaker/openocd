@@ -684,7 +684,7 @@ static int apm32x_probe(struct flash_bank *bank)
 	switch (device_id) {
     case 0x012: /* apm32f403 */
         page_size = 1024;
-		apm32x_info->ppage_size = 2;
+		apm32x_info->ppage_size = 4;
 		max_flash_size_in_kb = 128;
 		break;
 	case 0x013: /* apm32f035 */
