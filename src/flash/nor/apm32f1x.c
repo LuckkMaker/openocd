@@ -638,6 +638,13 @@ static int apm32x_get_device_id(struct flash_bank *bank, uint32_t *device_id)
 	return target_read_u32(target, addr.device_id, device_id);
 }
 
+static int apm32x_get_flash_size_ex(struct flash_bank *bank, uint32_t reg_addr, uint32_t *flash_size_in_kb)
+{
+    struct target *target = bank->target;
+
+    return target_read_u16(target, reg_addr, flash_size_in_kb);
+}
+
 static int apm32x_get_flash_size(struct flash_bank *bank, uint16_t *flash_size_in_kb)
 {
 	struct target *target = bank->target;
@@ -655,6 +662,7 @@ static int apm32x_probe(struct flash_bank *bank)
 	struct apm32x_flash_bank *apm32x_info = bank->driver_priv;
 	uint16_t flash_size_in_kb;
 	uint16_t max_flash_size_in_kb;
+    uint32_t flash_size_addr = 0;
 	uint32_t dbgmcu_idcode;
 	int page_size;
 	uint32_t base_address = 0x08000000;
@@ -686,6 +694,7 @@ static int apm32x_probe(struct flash_bank *bank)
         page_size = 1024;
 		apm32x_info->ppage_size = 4;
 		max_flash_size_in_kb = 128;
+        flash_size_addr = 0x1FFFF7E0;
 		break;
 	case 0x013: /* apm32f035 */
 	case 0x440: /* apm32f030x8/f051 */
@@ -751,8 +760,13 @@ static int apm32x_probe(struct flash_bank *bank)
 		return ERROR_FAIL;
 	}
 
-	/* get flash size from target. */
-	retval = apm32x_get_flash_size(bank, &flash_size_in_kb);
+    if (flash_size_addr != 0) {
+        /* get flash size from target. */
+        retval = apm32x_get_flash_size_ex(bank, flash_size_addr, &flash_size_in_kb);
+    } else {
+        /* get flash size from target. */
+        retval = apm32x_get_flash_size(bank, &flash_size_in_kb);
+    }
 
 	/* failed reading flash size or flash size invalid (early silicon),
 	 * default to max target family */
