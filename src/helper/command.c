@@ -58,7 +58,7 @@ void *jimcmd_privdata(Jim_Cmd *cmd)
 	return cmd->isproc ? NULL : cmd->u.native.privData;
 }
 
-static void tcl_output(void *privData, const char *file, unsigned line,
+static void tcl_output(void *privData, const char *file, unsigned int line,
 	const char *function, const char *string)
 {
 	struct log_capture_state *state = privData;
@@ -144,43 +144,14 @@ static void script_debug(Jim_Interp *interp, unsigned int argc, Jim_Obj * const 
 		return;
 
 	char *dbg = alloc_printf("command -");
-	for (unsigned i = 0; i < argc; i++) {
-		int len;
-		const char *w = Jim_GetString(argv[i], &len);
+	for (unsigned int i = 0; i < argc; i++) {
+		const char *w = Jim_GetString(argv[i], NULL);
 		char *t = alloc_printf("%s %s", dbg, w);
 		free(dbg);
 		dbg = t;
 	}
 	LOG_DEBUG("%s", dbg);
 	free(dbg);
-}
-
-static void script_command_args_free(char **words, unsigned nwords)
-{
-	for (unsigned i = 0; i < nwords; i++)
-		free(words[i]);
-	free(words);
-}
-
-static char **script_command_args_alloc(
-	unsigned argc, Jim_Obj * const *argv, unsigned *nwords)
-{
-	char **words = malloc(argc * sizeof(char *));
-	if (!words)
-		return NULL;
-
-	unsigned i;
-	for (i = 0; i < argc; i++) {
-		int len;
-		const char *w = Jim_GetString(argv[i], &len);
-		words[i] = strdup(w);
-		if (!words[i]) {
-			script_command_args_free(words, i);
-			return NULL;
-		}
-	}
-	*nwords = i;
-	return words;
 }
 
 struct command_context *current_command_context(Jim_Interp *interp)
@@ -317,7 +288,7 @@ int __register_commands(struct command_context *cmd_ctx, const char *cmd_prefix,
 	struct target *override_target)
 {
 	int retval = ERROR_OK;
-	unsigned i;
+	unsigned int i;
 	for (i = 0; cmds[i].name || cmds[i].chain; i++) {
 		const struct command_registration *cr = cmds + i;
 
@@ -352,7 +323,7 @@ int __register_commands(struct command_context *cmd_ctx, const char *cmd_prefix,
 		}
 	}
 	if (retval != ERROR_OK) {
-		for (unsigned j = 0; j < i; j++)
+		for (unsigned int j = 0; j < i; j++)
 			unregister_command(cmd_ctx, cmd_prefix, cmds[j].name);
 	}
 	return retval;
@@ -518,15 +489,29 @@ static bool command_can_run(struct command_context *cmd_ctx, struct command *c, 
 	return false;
 }
 
-static int run_command(struct command_context *context,
-	struct command *c, const char **words, unsigned num_words)
+static int exec_command(Jim_Interp *interp, struct command_context *context,
+		struct command *c, int argc, Jim_Obj * const *argv)
 {
+	if (c->jim_handler)
+		return c->jim_handler(interp, argc, argv);
+
+	/* use c->handler */
+	const char **words = malloc(argc * sizeof(char *));
+	if (!words) {
+		LOG_ERROR("Out of memory");
+		return JIM_ERR;
+	}
+
+	for (int i = 0; i < argc; i++)
+		words[i] = Jim_GetString(argv[i], NULL);
+
 	struct command_invocation cmd = {
 		.ctx = context,
 		.current = c,
 		.name = c->name,
-		.argc = num_words - 1,
+		.argc = argc - 1,
 		.argv = words + 1,
+		.jimtcl_argv = argv + 1,
 	};
 
 	cmd.output = Jim_NewEmptyStringObj(context->interp);
@@ -555,7 +540,8 @@ static int run_command(struct command_context *context,
 	}
 	Jim_DecrRefCount(context->interp, cmd.output);
 
-	return retval;
+	free(words);
+	return command_retval_set(interp, retval);
 }
 
 int command_run_line(struct command_context *context, char *line)
@@ -742,12 +728,12 @@ static COMMAND_HELPER(command_help_show_list, bool show_help, const char *cmd_ma
 
 #define HELP_LINE_WIDTH(_n) (int)(76 - (2 * _n))
 
-static void command_help_show_indent(unsigned n)
+static void command_help_show_indent(unsigned int n)
 {
-	for (unsigned i = 0; i < n; i++)
+	for (unsigned int i = 0; i < n; i++)
 		LOG_USER_N("  ");
 }
-static void command_help_show_wrap(const char *str, unsigned n, unsigned n2)
+static void command_help_show_wrap(const char *str, unsigned int n, unsigned int n2)
 {
 	const char *cp = str, *last = str;
 	while (*cp) {
@@ -894,23 +880,6 @@ static char *alloc_concatenate_strings(int argc, Jim_Obj * const *argv)
 	}
 
 	return all;
-}
-
-static int exec_command(Jim_Interp *interp, struct command_context *cmd_ctx,
-		struct command *c, int argc, Jim_Obj * const *argv)
-{
-	if (c->jim_handler)
-		return c->jim_handler(interp, argc, argv);
-
-	/* use c->handler */
-	unsigned int nwords;
-	char **words = script_command_args_alloc(argc, argv, &nwords);
-	if (!words)
-		return JIM_ERR;
-
-	int retval = run_command(cmd_ctx, c, (const char **)words, nwords);
-	script_command_args_free(words, nwords);
-	return command_retval_set(interp, retval);
 }
 
 static int jim_command_dispatch(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
@@ -1348,7 +1317,7 @@ DEFINE_PARSE_NUM_TYPE(_llong, long long, strtoll, LLONG_MIN, LLONG_MAX)
 
 #define DEFINE_PARSE_ULONGLONG(name, type, min, max) \
 	DEFINE_PARSE_WRAPPER(name, type, min, max, unsigned long long, _ullong)
-DEFINE_PARSE_ULONGLONG(_uint, unsigned, 0, UINT_MAX)
+DEFINE_PARSE_ULONGLONG(_uint, unsigned int, 0, UINT_MAX)
 DEFINE_PARSE_ULONGLONG(_u64,  uint64_t, 0, UINT64_MAX)
 DEFINE_PARSE_ULONGLONG(_u32,  uint32_t, 0, UINT32_MAX)
 DEFINE_PARSE_ULONGLONG(_u16,  uint16_t, 0, UINT16_MAX)
@@ -1389,6 +1358,27 @@ int command_parse_bool_arg(const char *in, bool *out)
 	if (command_parse_bool(in, out, "1", "0") == ERROR_OK)
 		return ERROR_OK;
 	return ERROR_COMMAND_SYNTAX_ERROR;
+}
+
+COMMAND_HELPER(command_parse_str_to_buf, const char *str, void *buf, unsigned int buf_len)
+{
+	assert(str);
+	assert(buf);
+
+	int ret = str_to_buf(str, buf, buf_len);
+	if (ret == ERROR_OK)
+		return ret;
+
+	/* Provide a clear error message to the user */
+	if (ret == ERROR_INVALID_NUMBER) {
+		command_print(CMD, "'%s' is not a valid number", str);
+	} else if (ret == ERROR_NUMBER_EXCEEDS_BUFFER) {
+		command_print(CMD, "Number %s exceeds %u bits", str, buf_len);
+	} else {
+		command_print(CMD, "Could not parse number '%s'", str);
+	}
+
+	return ERROR_COMMAND_ARGUMENT_INVALID;
 }
 
 COMMAND_HELPER(handle_command_parse_bool, bool *out, const char *label)
