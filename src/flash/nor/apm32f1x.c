@@ -638,7 +638,7 @@ static int apm32x_get_device_id(struct flash_bank *bank, uint32_t *device_id)
 	return target_read_u32(target, addr.device_id, device_id);
 }
 
-static int apm32x_get_flash_size_ex(struct flash_bank *bank, uint32_t reg_addr, uint32_t *flash_size_in_kb)
+static int apm32x_get_flash_size_ex(struct flash_bank *bank, uint32_t reg_addr, uint16_t *flash_size_in_kb)
 {
     struct target *target = bank->target;
 

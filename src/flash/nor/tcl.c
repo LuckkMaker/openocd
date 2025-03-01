@@ -24,6 +24,7 @@ COMMAND_HELPER(flash_command_get_bank_probe_optional, unsigned int name_index,
 {
 	const char *name = CMD_ARGV[name_index];
 	int retval;
+    command_print_sameline(cmd, "name: %s", name);
 	if (do_probe) {
 		retval = get_flash_bank_by_name(name, bank);
 	} else {
