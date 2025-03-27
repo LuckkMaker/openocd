@@ -755,6 +755,18 @@ static int apm32x_probe(struct flash_bank *bank)
 		apm32x_info->ppage_size = 2;
 		max_flash_size_in_kb = 512;
 		break;
+    case 0xfff: /* apm32e030 */
+        page_size = 1024;
+        apm32x_info->ppage_size = 2;
+        max_flash_size_in_kb = 64;
+        apm32x_info->rdp_length = 2;
+        apm32x_info->watchdog_offset = 8;
+        apm32x_info->reset_stop_offset = 9;
+        apm32x_info->reset_stdb_offset = 10;
+        apm32x_info->user_data_offset = 16;
+        apm32x_info->option_offset = 6;
+        apm32x_info->default_rdp = 0xAA;
+        break;
 	default:
 		LOG_WARNING("Cannot identify target as a APM32 family.");
 		return ERROR_FAIL;
@@ -854,7 +866,6 @@ static int get_apm32x_info(struct flash_bank *bank, struct command_invocation *c
 	uint16_t rev_id = dbgmcu_idcode >> 16;
 	const char *device_str;
 	const char *rev_str = NULL;
-    command_print_sameline(cmd, "device_id = 0x%03x, rev_id = 0x%04x", device_id, rev_id);
 
 	switch (device_id) {
 	case 0x410:
