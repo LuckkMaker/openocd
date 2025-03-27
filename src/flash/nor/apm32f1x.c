@@ -939,6 +939,11 @@ static int get_apm32x_info(struct flash_bank *bank, struct command_invocation *c
 		rev_str = "A";
 		break;
 
+    case 0xfff:
+        device_str = "APM32E03x";
+        rev_str = "A";
+        break;
+
 	default:
 		command_print_sameline(cmd, "Cannot identify target as a APM32F0/1\n");
 		return ERROR_FAIL;
