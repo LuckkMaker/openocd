@@ -843,17 +843,18 @@ COMMAND_HANDLER(apm32x_handle_part_id_command)
 
 static int get_apm32x_info(struct flash_bank *bank, struct command_invocation *cmd)
 {
-	uint32_t dbgmcu_idcode;
+    uint32_t dbgmcu_idcode;
 
 	/* read apm32 device id register */
 	int retval = apm32x_get_device_id(bank, &dbgmcu_idcode);
 	if (retval != ERROR_OK)
-		return retval;
+    return retval;
 
 	uint16_t device_id = dbgmcu_idcode & 0xfff;
 	uint16_t rev_id = dbgmcu_idcode >> 16;
 	const char *device_str;
 	const char *rev_str = NULL;
+    command_print_sameline(cmd, "device_id = 0x%03x, rev_id = 0x%04x", device_id, rev_id);
 
 	switch (device_id) {
 	case 0x410:
