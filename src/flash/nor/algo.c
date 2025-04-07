@@ -17,6 +17,7 @@
 
 typedef struct algo_image {
     uint32_t bankid;
+    uint32_t addr;
     uint32_t size;
     uint32_t offset;
     struct algo_image *next;
@@ -116,6 +117,7 @@ static int algo_write(struct flash_bank *bank, const uint8_t *buffer,
             count = 0;
         }
         algo_image_node = (algo_image *)malloc(sizeof(algo_image));
+        algo_image_node->addr = bank->base + offset2;
         algo_image_node->size = size;
         algo_image_node->offset = offset2;
         algo_image_node->bankid = bank->bank_number;
@@ -157,7 +159,7 @@ static int get_algo_info(struct flash_bank *bank, struct command_invocation *cmd
     return ERROR_OK;
 }
 
-// init
+// algo init
 COMMAND_HANDLER(algo_handle_init_command)
 {
     if (algo_init() == ERROR_FAIL) {
@@ -190,7 +192,7 @@ COMMAND_HANDLER(algo_handle_load_data_command)
     target = bank->target;
 
     size = algo_current_image->size;
-    addr = bank->base + algo_current_image->offset;
+    addr = algo_current_image->addr;
 
     if (size % 4 == 0)
     {
@@ -224,6 +226,11 @@ COMMAND_HANDLER(algo_handle_done_data_command)
 COMMAND_HANDLER(algo_handle_test_command)
 {
     algo_image *p;
+
+    if (algo_image_list_head == NULL) {
+        return ERROR_OK;
+    }
+
     for (p = algo_image_list_head->next; p != NULL; p = p->next) {
         LOG_USER("bankid = %d, size = %d, offset = %d", p->bankid, p->size, p->offset);
     }
