@@ -188,6 +188,8 @@ COMMAND_HANDLER(algo_handle_load_data_command)
     algo_current_image = algo_current_image->next;
 
     bankid = algo_current_image->bankid;
+    size = algo_current_image->size;
+    addr = algo_current_image->addr;
 
     if (algo_current_image->bank != NULL) {
         LOG_USER("bank not null");
@@ -201,9 +203,6 @@ COMMAND_HANDLER(algo_handle_load_data_command)
 
         target = bank->target;
     }
-
-    size = algo_current_image->size;
-    addr = algo_current_image->addr;
 
     if (size % 4 == 0)
     {
