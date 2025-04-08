@@ -194,6 +194,8 @@ COMMAND_HANDLER(algo_handle_load_data_command)
         int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, bankid, &bank);
         if (retval != ERROR_OK)
             return retval;
+
+        target = bank->target;
     }
 
     size = algo_current_image->size;
