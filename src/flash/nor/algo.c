@@ -214,7 +214,7 @@ COMMAND_HANDLER(algo_handle_load_data_command)
         retval = target_write_memory(target, algo_data_base, 1, size, (algo_current_image->buffer));
     }
     if (retval != ERROR_OK){
-        LOG_USER("write memory error")
+        LOG_USER("write memory error");
     }
     command_print(cmd, "%d %d %d", addr, size, bankid);
     return ERROR_OK;
