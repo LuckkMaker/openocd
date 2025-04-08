@@ -194,7 +194,13 @@ COMMAND_HANDLER(algo_handle_load_data_command)
     if (retval != ERROR_OK)
         return retval;
 
-    target = bank->target;
+    if (bank == NULL)
+    {
+        LOG_WARNING("algo: bank is NULL");
+    }
+    else {
+        target = bank->target;
+    }
 
     if (size % 4 == 0)
     {
