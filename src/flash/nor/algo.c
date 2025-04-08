@@ -190,9 +190,11 @@ COMMAND_HANDLER(algo_handle_load_data_command)
     bankid = algo_current_image->bankid;
 
     if (algo_current_image->bank != NULL) {
+        LOG_USER("bank not null");
         target = algo_current_image->bank->target;
     }
     else {
+        LOG_USER("bank null");
         int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, bankid, &bank);
         if (retval != ERROR_OK)
             return retval;
