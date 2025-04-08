@@ -177,40 +177,31 @@ COMMAND_HANDLER(algo_handle_load_data_command)
 	struct flash_bank *bank;
     struct target *target = NULL;
     uint32_t size = 0, addr = 0, bankid = 0;
-    int retval = 0;
 
     if (algo_current_image->next == NULL) {
         command_print(cmd, "%d %d %d", addr, size, bankid);
         return ERROR_OK;
     }
-
     algo_current_image = algo_current_image->next;
-
     bankid = algo_current_image->bankid;
-    size = algo_current_image->size;
-    addr = algo_current_image->addr;
 
-    retval = CALL_COMMAND_HANDLER(flash_command_get_bank, bankid, &bank);
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, bankid, &bank);
     if (retval != ERROR_OK)
         return retval;
 
-    if (bank == NULL)
-    {
-        LOG_WARNING("algo: bank is NULL");
-    }
-    else {
-        target = bank->target;
-    }
+    target = bank->target;
+
+    size = algo_current_image->size;
+    addr = algo_current_image->addr;
 
     if (size % 4 == 0)
     {
-        retval = target_write_memory(target, algo_data_base, 4, (size / 4), (algo_current_image->buffer));
+        target_write_memory(target, algo_data_base, 4, (size / 4), (algo_current_image->buffer));
     } else if (size % 2 == 0) {
-        retval = target_write_memory(target, algo_data_base, 2, (size / 2), (algo_current_image->buffer));
+        target_write_memory(target, algo_data_base, 2, (size / 2), (algo_current_image->buffer));
     } else {
-        retval = target_write_memory(target, algo_data_base, 1, size, (algo_current_image->buffer));
+        target_write_memory(target, algo_data_base, 1, size, (algo_current_image->buffer));
     }
-
     command_print(cmd, "%d %d %d", addr, size, bankid);
     return ERROR_OK;
 }
