@@ -20,7 +20,6 @@ typedef struct algo_image {
     uint32_t addr;
     uint32_t size;
     uint32_t offset;
-    struct flash_bank *bank;
     struct algo_image *next;
     uint8_t *buffer;
 } algo_image;
@@ -122,7 +121,6 @@ static int algo_write(struct flash_bank *bank, const uint8_t *buffer,
         algo_image_node->size = size;
         algo_image_node->offset = offset2;
         algo_image_node->bankid = bank->bank_number;
-        algo_image_node->bank = bank;
         algo_image_node->buffer = (uint8_t *)malloc(size * sizeof(uint8_t));
         algo_image_node->next = NULL;
         memcpy(algo_image_node->buffer, (buffer + offset2), size);
@@ -192,18 +190,11 @@ COMMAND_HANDLER(algo_handle_load_data_command)
     size = algo_current_image->size;
     addr = algo_current_image->addr;
 
-    if (algo_current_image->bank != NULL) {
-        LOG_USER("bank not null");
-        target = algo_current_image->bank->target;
-    }
-    else {
-        LOG_USER("bank null");
-        retval = CALL_COMMAND_HANDLER(flash_command_get_bank, bankid, &bank);
-        if (retval != ERROR_OK)
-            return retval;
+    retval = CALL_COMMAND_HANDLER(flash_command_get_bank, bankid, &bank);
+    if (retval != ERROR_OK)
+        return retval;
 
-        target = bank->target;
-    }
+    target = bank->target;
 
     if (size % 4 == 0)
     {
@@ -213,9 +204,7 @@ COMMAND_HANDLER(algo_handle_load_data_command)
     } else {
         retval = target_write_memory(target, algo_data_base, 1, size, (algo_current_image->buffer));
     }
-    if (retval != ERROR_OK){
-        LOG_USER("write memory error");
-    }
+
     command_print(cmd, "%d %d %d", addr, size, bankid);
     return ERROR_OK;
 }
