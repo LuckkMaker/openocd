@@ -184,13 +184,15 @@ COMMAND_HANDLER(algo_handle_load_data_command)
         command_print(cmd, "%d %d %d", addr, size, bankid);
         return ERROR_OK;
     }
+
     algo_current_image = algo_current_image->next;
+
+    bankid = algo_current_image->bankid;
+
     if (algo_current_image->bank != NULL) {
         target = algo_current_image->bank->target;
     }
     else {
-        bankid = algo_current_image->bankid;
-
         int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, bankid, &bank);
         if (retval != ERROR_OK)
             return retval;
