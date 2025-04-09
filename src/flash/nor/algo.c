@@ -182,26 +182,36 @@ COMMAND_HANDLER(algo_handle_load_data_command)
         command_print(cmd, "%d %d %d", addr, size, bankid);
         return ERROR_OK;
     }
+
     algo_current_image = algo_current_image->next;
+
     bankid = algo_current_image->bankid;
+    size = algo_current_image->size;
+    addr = algo_current_image->addr;
 
 	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, bankid, &bank);
     if (retval != ERROR_OK)
         return retval;
 
-    target = bank->target;
+    if (bank == NULL) {
+        LOG_WARNING("load: bank is NULL");
+    }
 
-    size = algo_current_image->size;
-    addr = algo_current_image->addr;
+    target = bank->target;
 
     if (size % 4 == 0)
     {
-        target_write_memory(target, algo_data_base, 4, (size / 4), (algo_current_image->buffer));
+        retval = target_write_memory(target, algo_data_base, 4, (size / 4), (algo_current_image->buffer));
     } else if (size % 2 == 0) {
-        target_write_memory(target, algo_data_base, 2, (size / 2), (algo_current_image->buffer));
+        retval = target_write_memory(target, algo_data_base, 2, (size / 2), (algo_current_image->buffer));
     } else {
-        target_write_memory(target, algo_data_base, 1, size, (algo_current_image->buffer));
+        retval = target_write_memory(target, algo_data_base, 1, size, (algo_current_image->buffer));
     }
+
+    if (retval != ERROR_OK) {
+        LOG_WARNING("load: write memory fail");
+    }
+
     command_print(cmd, "%d %d %d", addr, size, bankid);
     return ERROR_OK;
 }
