@@ -838,6 +838,10 @@ static int apm32x_probe(struct flash_bank *bank)
 		max_flash_size_in_kb = 1024;
 		break;
 
+    case 0x419: /* F427 */
+        max_flash_size_in_kb = 1024;
+        break;
+
 	case 0x431: /* F411 */
 		max_flash_size_in_kb = 512;
 		break;
@@ -870,6 +874,8 @@ static int apm32x_probe(struct flash_bank *bank)
 	/* did we assign flash size? */
 	assert(flash_size_in_kb != 0xffff);
 
+    // TODO:(luckk) confilct with APM32F425/427
+    #if 0
 	/* F42x/43x/469/479 1024 kiByte devices have a dual bank option */
 	if ((device_id == 0x419) || (device_id == 0x434)) {
 		uint32_t optiondata;
@@ -881,6 +887,7 @@ static int apm32x_probe(struct flash_bank *bank)
 
         LOG_INFO("Single Bank %" PRIu16 " kiB APM32F4x found", flash_size_in_kb);
 	}
+    #endif
 
 	/* calculate numbers of pages */
 	unsigned int num_pages = calculate_number_of_sectors(
@@ -939,6 +946,8 @@ static int get_apm32x_info(struct flash_bank *bank, struct command_invocation *c
 	case 0x413:
 		device_str = "APM32F407/417";
 		break;
+    case 0x419:
+        device_str = "APM32F425/427";
 	case 0x431:
 		device_str = "APM32F411";
 		break;
