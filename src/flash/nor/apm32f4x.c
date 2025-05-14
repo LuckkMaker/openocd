@@ -810,7 +810,7 @@ static int apm32x_probe(struct flash_bank *bank)
 		assert(num_sectors > 0);
 
 		bank->num_sectors = num_sectors;
-		bank->sectors = calloc(sizeof(struct flash_sector), num_sectors);
+		bank->sectors = calloc(num_sectors, sizeof(struct flash_sector));
 
 			bank->size = APM32F4_OTP_SIZE;
 
@@ -948,6 +948,7 @@ static int get_apm32x_info(struct flash_bank *bank, struct command_invocation *c
 		break;
     case 0x419:
         device_str = "APM32F425/427";
+        break;
 	case 0x431:
 		device_str = "APM32F411";
 		break;
